@@ -1,0 +1,8 @@
+target/
+*.log
+.env
+application-local.properties
+**/target/
+**/application.properties.bak
+.DS_Store
+*.class
