@@ -1,0 +1,66 @@
+<div class="dashboard-container">
+
+  <!-- Welcome Banner -->
+  <div class="welcome-banner">
+    <div class="welcome-text">
+      <h1>Welcome back, {{ username }} 👋</h1>
+      <p>Swedbank Credit Score Analysis Portal — Real-time scoring & analytics</p>
+    </div>
+    <div class="avg-score-badge" *ngIf="averageScore !== null">
+      <span class="badge-label">System Average Score</span>
+      <span class="badge-value" [style.color]="getScoreColor(averageScore)">{{ averageScore | number:'1.0-0' }}</span>
+      <span class="badge-status" [style.color]="getScoreColor(averageScore)">{{ getScoreLabel(averageScore) }}</span>
+    </div>
+    <div class="avg-score-badge" *ngIf="loading">
+      <span class="badge-label">Loading stats...</span>
+    </div>
+  </div>
+
+  <!-- Tech Stack Stats -->
+  <div class="stats-grid">
+    <div class="stat-card" *ngFor="let stat of stats">
+      <span class="stat-icon">{{ stat.icon }}</span>
+      <div>
+        <div class="stat-value">{{ stat.value }}</div>
+        <div class="stat-label">{{ stat.label }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Cards -->
+  <h2 class="section-title">Quick Actions</h2>
+  <div class="action-grid">
+    <div class="action-card" *ngFor="let card of cards" [routerLink]="card.route">
+      <div class="action-icon" [style.background]="card.color">{{ card.icon }}</div>
+      <div class="action-content">
+        <h3>{{ card.title }}</h3>
+        <p>{{ card.desc }}</p>
+      </div>
+      <span class="action-arrow">→</span>
+    </div>
+  </div>
+
+  <!-- Architecture Info -->
+  <div class="arch-section">
+    <h2 class="section-title">System Architecture</h2>
+    <div class="arch-flow">
+      <div class="arch-item arch-frontend">Angular UI<br/><small>Port 4200</small></div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-item arch-gateway">Spring Cloud Gateway<br/><small>Port 8080</small></div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-item arch-ms">UserManagementMS<br/><small>Port 8081</small></div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-item arch-ms">CreditScoringMS<br/><small>Port 8082</small></div>
+    </div>
+    <div class="arch-flow" style="margin-top: 12px;">
+      <div class="arch-item arch-db">MySQL DB</div>
+      <div class="arch-arrow">+</div>
+      <div class="arch-item arch-cache">Redis Cache</div>
+      <div class="arch-arrow">+</div>
+      <div class="arch-item arch-kafka">Kafka Messaging</div>
+      <div class="arch-arrow">+</div>
+      <div class="arch-item arch-log">Log4j2 + Splunk</div>
+    </div>
+  </div>
+
+</div>

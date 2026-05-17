@@ -1,0 +1,159 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>📊 Credit Score Management</h1>
+    <p>Calculate, view and track credit scores for bank clients</p>
+    <div class="avg-pill" *ngIf="averageScore !== null">
+      System Average: <strong>{{ averageScore | number:'1.0-0' }}</strong>
+      <button class="btn-sm" (click)="onRefresh()">🔄 Refresh All</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button [class.tab-active]="activeTab==='calculate'" (click)="activeTab='calculate'">Calculate Score</button>
+    <button [class.tab-active]="activeTab==='fetch'" (click)="activeTab='fetch'">Fetch Score</button>
+    <button [class.tab-active]="activeTab==='history'" (click)="activeTab='history'">Score History</button>
+  </div>
+
+  <!-- Calculate Tab -->
+  <div class="tab-content" *ngIf="activeTab==='calculate'">
+    <div class="card">
+      <h3>🧮 Calculate New Credit Score</h3>
+      <p class="card-desc">Saves to MySQL, caches in Redis, and sends Kafka email notification</p>
+      <form [formGroup]="calculateForm" (ngSubmit)="onCalculate()">
+        <div class="form-row">
+          <div class="form-group">
+            <label>User ID</label>
+            <input type="number" formControlName="userId" class="form-control" placeholder="e.g. 1" />
+          </div>
+          <div class="form-group">
+            <label>Client Email</label>
+            <input type="email" formControlName="emailId" class="form-control" placeholder="client@email.com" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Credit Score (300–900)</label>
+            <input type="number" formControlName="score" class="form-control" placeholder="e.g. 720" />
+          </div>
+          <div class="form-group">
+            <label>Score Type</label>
+            <select formControlName="scoreType" class="form-control">
+              <option *ngFor="let t of scoreTypes" [value]="t">{{ t }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Algorithm Used</label>
+          <select formControlName="algorithmUsed" class="form-control">
+            <option *ngFor="let a of algorithms" [value]="a">{{ a }}</option>
+          </select>
+        </div>
+        <div class="alert-error" *ngIf="calcError">{{ calcError }}</div>
+        <button type="submit" class="btn-primary" [disabled]="calcLoading || calculateForm.invalid">
+          {{ calcLoading ? 'Calculating...' : '🚀 Calculate & Save Score' }}
+        </button>
+      </form>
+
+      <!-- Result -->
+      <div class="result-card" *ngIf="calculateResult">
+        <h4>✅ Score Calculated Successfully</h4>
+        <div class="result-score" [class]="getScoreClass(calculateResult.score)">
+          {{ calculateResult.score }}
+          <span class="score-label">{{ getScoreLabel(calculateResult.score) }}</span>
+        </div>
+        <div class="result-details">
+          <span><strong>User ID:</strong> {{ calculateResult.userId }}</span>
+          <span><strong>Email:</strong> {{ calculateResult.emailId }}</span>
+          <span><strong>Type:</strong> {{ calculateResult.scoreType }}</span>
+          <span><strong>Date:</strong> {{ calculateResult.date }}</span>
+        </div>
+        <p class="kafka-note">📨 Kafka event published → Email notification sent to client</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fetch Tab -->
+  <div class="tab-content" *ngIf="activeTab==='fetch'">
+    <div class="card">
+      <h3>🔍 Fetch Latest Credit Score</h3>
+      <p class="card-desc">Checks Redis cache first, then falls back to MySQL DB</p>
+      <form [formGroup]="fetchForm" (ngSubmit)="onFetch()">
+        <div class="form-row">
+          <div class="form-group">
+            <label>User ID</label>
+            <input type="number" formControlName="userId" class="form-control" placeholder="e.g. 1" />
+          </div>
+          <div class="form-group">
+            <label>Client Email</label>
+            <input type="email" formControlName="emailId" class="form-control" placeholder="client@email.com" />
+          </div>
+        </div>
+        <div class="alert-error" *ngIf="fetchError">{{ fetchError }}</div>
+        <button type="submit" class="btn-primary" [disabled]="fetchLoading || fetchForm.invalid">
+          {{ fetchLoading ? 'Fetching...' : '🔍 Get Score' }}
+        </button>
+      </form>
+
+      <div class="result-card" *ngIf="fetchResult">
+        <h4>📊 Latest Score</h4>
+        <div class="result-score" [class]="getScoreClass(fetchResult.score)">
+          {{ fetchResult.score }}
+          <span class="score-label">{{ getScoreLabel(fetchResult.score) }}</span>
+        </div>
+        <div class="result-details">
+          <span><strong>Score Type:</strong> {{ fetchResult.scoreType }}</span>
+          <span><strong>Algorithm:</strong> {{ fetchResult.algorithmUsed }}</span>
+          <span><strong>Date:</strong> {{ fetchResult.date }}</span>
+        </div>
+        <p class="redis-note">⚡ Retrieved from Redis Cache (if cached) or MySQL DB</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Tab -->
+  <div class="tab-content" *ngIf="activeTab==='history'">
+    <div class="card">
+      <h3>📈 Score History</h3>
+      <p class="card-desc">Full credit score history for a client ordered by date</p>
+      <form [formGroup]="historyForm" (ngSubmit)="onHistory()">
+        <div class="form-group">
+          <label>User ID</label>
+          <input type="number" formControlName="userId" class="form-control" placeholder="e.g. 1" />
+        </div>
+        <div class="alert-error" *ngIf="historyError">{{ historyError }}</div>
+        <button type="submit" class="btn-primary" [disabled]="historyLoading || historyForm.invalid">
+          {{ historyLoading ? 'Loading...' : '📈 View History' }}
+        </button>
+      </form>
+
+      <div class="history-table" *ngIf="historyResult.length > 0">
+        <table>
+          <thead>
+            <tr>
+              <th>Score ID</th>
+              <th>Score</th>
+              <th>Rating</th>
+              <th>Type</th>
+              <th>Algorithm</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let h of historyResult">
+              <td>{{ h.creditScoreId }}</td>
+              <td><span class="score-badge" [class]="getScoreClass(h.score)">{{ h.score }}</span></td>
+              <td>{{ getScoreLabel(h.score) }}</td>
+              <td>{{ h.scoreType }}</td>
+              <td>{{ h.algorithmUsed }}</td>
+              <td>{{ h.date }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="empty-state" *ngIf="historyResult.length === 0 && !historyLoading && historyError === ''">
+        <p>Enter a User ID and click "View History" to see score records</p>
+      </div>
+    </div>
+  </div>
+</div>

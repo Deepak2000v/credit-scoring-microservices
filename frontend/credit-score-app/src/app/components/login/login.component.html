@@ -1,0 +1,32 @@
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-icon">💳</div>
+      <h2>Credit Score Analysis Tool</h2>
+      <p>Swedbank — Bank Officer Portal</p>
+    </div>
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" formControlName="username" placeholder="Enter username" class="form-control" />
+        <small class="error-text" *ngIf="loginForm.get('username')?.invalid && loginForm.get('username')?.touched">
+          Username is required
+        </small>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" formControlName="password" placeholder="Enter password" class="form-control" />
+        <small class="error-text" *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+          Password is required
+        </small>
+      </div>
+      <div class="alert-error" *ngIf="error">{{ error }}</div>
+      <button type="submit" class="btn-primary" [disabled]="loading || loginForm.invalid">
+        {{ loading ? 'Logging in...' : 'Login' }}
+      </button>
+    </form>
+    <div class="auth-footer">
+      Don't have an account? <a routerLink="/register">Register here</a>
+    </div>
+  </div>
+</div>

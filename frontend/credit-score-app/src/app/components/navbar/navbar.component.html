@@ -1,0 +1,15 @@
+<nav class="navbar" *ngIf="authService.isLoggedIn()">
+  <div class="nav-brand">
+    <span class="nav-logo">💳</span>
+    <span class="nav-title">Credit Score Analysis Tool</span>
+  </div>
+  <div class="nav-links">
+    <a routerLink="/dashboard" routerLinkActive="active">🏠 Dashboard</a>
+    <a routerLink="/credit-score" routerLinkActive="active">📊 Credit Score</a>
+    <a routerLink="/financial-data" routerLinkActive="active">💰 Financial Data</a>
+  </div>
+  <div class="nav-user">
+    <span class="nav-username">👤 {{ authService.getUsername() }}</span>
+    <button class="btn-logout" (click)="logout()">Logout</button>
+  </div>
+</nav>

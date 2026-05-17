@@ -1,0 +1,165 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>💰 Financial Data Management</h1>
+    <p>Submit and view client financial transaction records</p>
+  </div>
+
+  <div class="tabs">
+    <button [class.tab-active]="activeTab==='submit'" (click)="activeTab='submit'">Submit Transaction</button>
+    <button [class.tab-active]="activeTab==='view'" (click)="activeTab='view'">View Records</button>
+  </div>
+
+  <!-- Submit Tab -->
+  <div class="tab-content" *ngIf="activeTab==='submit'">
+    <div class="card">
+      <h3>📥 Submit New Financial Transaction</h3>
+      <p class="card-desc">POST /data → Spring Cloud Gateway → CreditScoringServiceMS → MySQL</p>
+      <form [formGroup]="submitForm" (ngSubmit)="onSubmit()">
+        <div class="form-row">
+          <div class="form-group">
+            <label>User ID</label>
+            <input type="number" formControlName="userId" class="form-control" placeholder="e.g. 1" />
+          </div>
+          <div class="form-group">
+            <label>Client Email</label>
+            <input type="email" formControlName="emailId" class="form-control" placeholder="client@email.com" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Amount (SEK)</label>
+            <input type="number" step="0.01" formControlName="amount" class="form-control" placeholder="e.g. 5000.00" />
+          </div>
+          <div class="form-group">
+            <label>Transaction Type</label>
+            <select formControlName="transactionType" class="form-control">
+              <option value="credit">Credit (Money In)</option>
+              <option value="debit">Debit (Money Out)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Category</label>
+            <select formControlName="category" class="form-control">
+              <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <input type="text" formControlName="transactionDescription" class="form-control" placeholder="e.g. Monthly salary" />
+          </div>
+        </div>
+        <div class="alert-error" *ngIf="submitError">{{ submitError }}</div>
+        <button type="submit" class="btn-primary" [disabled]="submitLoading || submitForm.invalid">
+          {{ submitLoading ? 'Submitting...' : '💾 Submit Transaction' }}
+        </button>
+      </form>
+
+      <div class="result-card" *ngIf="submitResult">
+        <h4>✅ Transaction Saved Successfully</h4>
+        <div class="result-row">
+          <div class="result-item">
+            <span class="result-label">Record ID</span>
+            <span class="result-value">#{{ submitResult.recordId }}</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">User ID</span>
+            <span class="result-value">{{ submitResult.userId }}</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">Amount</span>
+            <span class="result-value amount-value">{{ submitResult.amount | number:'1.2-2' }} SEK</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">Type</span>
+            <span class="type-badge" [class]="getTypeClass(submitResult.transactionType)">
+              {{ submitResult.transactionType | uppercase }}
+            </span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">Category</span>
+            <span class="result-value">{{ submitResult.category }}</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">Date</span>
+            <span class="result-value">{{ submitResult.transactionDate }}</span>
+          </div>
+        </div>
+        <p class="info-note">📊 Use this data to calculate a credit score in the Credit Score section</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Records Tab -->
+  <div class="tab-content" *ngIf="activeTab==='view'">
+    <div class="card">
+      <h3>📋 View Financial Records</h3>
+      <p class="card-desc">GET /data/:userId → Spring Cloud Gateway → CreditScoringServiceMS</p>
+      <div class="fetch-row">
+        <div class="form-group" style="flex:1; margin-bottom:0">
+          <label>User ID</label>
+          <input type="number" [(ngModel)]="fetchUserId" class="form-control" placeholder="Enter User ID" />
+        </div>
+        <button class="btn-primary fetch-btn" (click)="onFetch()" [disabled]="fetchLoading || !fetchUserId">
+          {{ fetchLoading ? 'Loading...' : '🔍 Fetch Records' }}
+        </button>
+      </div>
+      <div class="alert-error" *ngIf="fetchError" style="margin-top:12px">{{ fetchError }}</div>
+
+      <div class="summary-row" *ngIf="records.length > 0">
+        <div class="summary-card credit-summary">
+          <div class="summary-icon">💚</div>
+          <div>
+            <div class="summary-num">{{ getCreditCount() }}</div>
+            <div class="summary-label">Credits</div>
+          </div>
+        </div>
+        <div class="summary-card debit-summary">
+          <div class="summary-icon">🔴</div>
+          <div>
+            <div class="summary-num">{{ getDebitCount() }}</div>
+            <div class="summary-label">Debits</div>
+          </div>
+        </div>
+        <div class="summary-card total-summary">
+          <div class="summary-icon">📊</div>
+          <div>
+            <div class="summary-num">{{ records.length }}</div>
+            <div class="summary-label">Total Records</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="records-table" *ngIf="records.length > 0">
+        <table>
+          <thead>
+            <tr>
+              <th>Record ID</th>
+              <th>Amount (SEK)</th>
+              <th>Type</th>
+              <th>Category</th>
+              <th>Description</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of records">
+              <td>#{{ r.recordId }}</td>
+              <td class="amount-cell" [class.credit-amt]="r.transactionType==='credit'" [class.debit-amt]="r.transactionType==='debit'">
+                {{ r.transactionType === 'credit' ? '+' : '-' }}{{ r.amount | number:'1.2-2' }}
+              </td>
+              <td><span class="type-badge" [class]="getTypeClass(r.transactionType)">{{ r.transactionType | uppercase }}</span></td>
+              <td>{{ r.category }}</td>
+              <td>{{ r.transactionDescription }}</td>
+              <td>{{ r.transactionDate }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="empty-state" *ngIf="records.length === 0 && !fetchLoading && fetchError === ''">
+        <p>Enter a User ID and click "Fetch Records" to see financial transactions</p>
+      </div>
+    </div>
+  </div>
+</div>
