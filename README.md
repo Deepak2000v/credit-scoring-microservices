@@ -145,6 +145,10 @@ All requests go through the Gateway at `http://localhost:8080`
 
 ---
 
+### Monitoring & Logging
+- Log4j2
+- Splunk
+
 ## Author
 
 **Deepak Kumar** — [GitHub](https://github.com/Deepak2000v)
