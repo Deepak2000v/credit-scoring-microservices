@@ -5,7 +5,7 @@ on:
     branches:
       - develop
       - main
-      - feature/**
+      - feature/github-actions-ci
 
   pull_request:
     branches:
@@ -18,23 +18,68 @@ jobs:
 
     steps:
 
+      # STEP 1 - Checkout source code
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
+      # STEP 2 - Setup Java
       - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
 
+      # STEP 3 - Build User Management Service
       - name: Build User Management Service
         working-directory: backend/user-management-service
         run: mvn clean install -DskipTests
 
+      # STEP 4 - Build Credit Scoring Service
       - name: Build Credit Scoring Service
         working-directory: backend/credit-scoring-service
         run: mvn clean install -DskipTests
 
+      # STEP 5 - Build API Gateway
       - name: Build API Gateway
         working-directory: backend/api-gateway
         run: mvn clean install -DskipTests
+
+      # STEP 6 - Login to Docker Hub
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # STEP 7 - Build User Management Docker Image
+      - name: Build User Management Docker Image
+        working-directory: backend/user-management-service
+        run: |
+          docker build -t shadydeepak/user-management-service:latest .
+
+      # STEP 8 - Push User Management Docker Image
+      - name: Push User Management Docker Image
+        run: |
+          docker push shadydeepak/user-management-service:latest
+
+      # STEP 9 - Build Credit Scoring Docker Image
+      - name: Build Credit Scoring Docker Image
+        working-directory: backend/credit-scoring-service
+        run: |
+          docker build -t shadydeepak/credit-scoring-service:latest .
+
+      # STEP 10 - Push Credit Scoring Docker Image
+      - name: Push Credit Scoring Docker Image
+        run: |
+          docker push shadydeepak/credit-scoring-service:latest
+
+      # STEP 11 - Build API Gateway Docker Image
+      - name: Build API Gateway Docker Image
+        working-directory: backend/api-gateway
+        run: |
+          docker build -t shadydeepak/api-gateway:latest .
+
+      # STEP 12 - Push API Gateway Docker Image
+      - name: Push API Gateway Docker Image
+        run: |
+          docker push shadydeepak/api-gateway:latest
